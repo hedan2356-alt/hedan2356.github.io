@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简易爬虫游戏（超快速版）</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #f5f5f5; font-family: Arial, sans-serif; }
+        #gameContainer { position: relative; width: 800px; height: 600px; margin: 0 auto; background: #fff; border: 2px solid #333; overflow: hidden; }
+        #spider { position: absolute; width: 40px; height: 40px; background: #8B4513; border-radius: 50%; transition: all 0.05s; } /* 过渡时间再缩短，响应更快 */
+        #fly { position: absolute; width: 20px; height: 20px; background: #FFD700; border-radius: 50%; }
+        #score { position: absolute; top: 10px; left: 10px; font-size: 24px; font-weight: bold; color: #333; }
+        #startBtn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; font-size: 20px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 5px; }
+        #startBtn:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="score">得分: 0</div>
+        <div id="spider"></div>
+        <div id="fly"></div>
+        <button id="startBtn">开始游戏</button>
+    </div>
+
+    <script>
+        // 游戏元素
+        const gameContainer = document.getElementById('gameContainer');
+        const spider = document.getElementById('spider');
+        const fly = document.getElementById('fly');
+        const scoreElement = document.getElementById('score');
+        const startBtn = document.getElementById('startBtn');
+
+        // 游戏参数（核心修改：蜘蛛速度拉到 12，飞虫初始速度同步提升保持平衡）
+        let score = 0;
+        let gameInterval;
+        let isPlaying = false;
+        const spiderSpeed = 12; // 超快速版核心：从 8 提升到 12，想更快可改 15/20
+        let flySpeed = 4; // 飞虫初始速度从 3 提到 4，避免太容易
+
+        // 初始化蜘蛛位置（居中）
+        function initSpider() {
+            spider.style.left = (gameContainer.clientWidth - spider.offsetWidth) / 2 + 'px';
+            spider.style.top = (gameContainer.clientHeight - spider.offsetHeight) / 2 + 'px';
+        }
+
+        // 随机生成飞虫位置
+        function randomFlyPosition() {
+            const maxLeft = gameContainer.clientWidth - fly.offsetWidth;
+            const maxTop = gameContainer.clientHeight - fly.offsetHeight;
+            fly.style.left = Math.random() * maxLeft + 'px';
+            fly.style.top = Math.random() * maxTop + 'px';
+        }
+
+        // 键盘控制蜘蛛移动（保留原逻辑，速度已通过 spiderSpeed 提升）
+        document.addEventListener('keydown', (e) => {
+            if (!isPlaying) return;
+            let left = parseInt(spider.style.left) || 0;
+            let top = parseInt(spider.style.top) || 0;
+
+            switch(e.key) {
+                case 'ArrowLeft': left = Math.max(0, left - spiderSpeed); break;
+                case 'ArrowRight': left = Math.min(gameContainer.clientWidth - spider.offsetWidth, left + spiderSpeed); break;
+                case 'ArrowUp': top = Math.max(0, top - spiderSpeed); break;
+                case 'ArrowDown': top = Math.min(gameContainer.clientHeight - spider.offsetHeight, top + spiderSpeed); break;
+            }
+
+            spider.style.left = left + 'px';
+            spider.style.top = top + 'px';
+            checkCollision();
+        });
+
+        // 检测碰撞（蜘蛛吃到飞虫）
+        function checkCollision() {
+            const spiderRect = spider.getBoundingClientRect();
+            const flyRect = fly.getBoundingClientRect();
+            const containerRect = gameContainer.getBoundingClientRect();
+
+            const spiderX = spiderRect.left - containerRect.left;
+            const spiderY = spiderRect.top - containerRect.top;
+            const flyX = flyRect.left - containerRect.left;
+            const flyY = flyRect.top - containerRect.top;
+
+            if (
+                spiderX < flyX + fly.offsetWidth &&
+                spiderX + spider.offsetWidth > flyX &&
+                spiderY < flyY + fly.offsetHeight &&
+                spiderY + spider.offsetHeight > flyY
+            ) {
+                score++;
+                scoreElement.textContent = '得分: ' + score;
+                randomFlyPosition();
+                // 飞虫加速幅度提升：每 5 分加 1.2，比之前更快，保持挑战性
+                if (score % 5 === 0) flySpeed += 1.2;
+            }
+        }
+
+        // 飞虫自动移动
+        function moveFly() {
+            let left = parseInt(fly.style.left) || 0;
+            let top = parseInt(fly.style.top) || 0;
+
+            const direction = Math.floor(Math.random() * 4);
+            switch(direction) {
+                case 0: left = Math.max(0, left - flySpeed); break;
+                case 1: left = Math.min(gameContainer.clientWidth - fly.offsetWidth, left + flySpeed); break;
+                case 2: top = Math.max(0, top - flySpeed); break;
+                case 3: top = Math.min(gameContainer.clientHeight - fly.offsetHeight, top + flySpeed); break;
+            }
+
+            fly.style.left = left + 'px';
+            fly.style.top = top + 'px';
+        }
+
+        // 开始游戏
+        startBtn.addEventListener('click', () => {
+            score = 0;
+            flySpeed = 4; // 重置飞虫初始速度
+            scoreElement.textContent = '得分: 0';
+            initSpider();
+            randomFlyPosition();
+            isPlaying = true;
+            startBtn.style.display = 'none';
+
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(moveFly, 100);
+        });
+
+        // 初始化
+        initSpider();
+        randomFlyPosition();
+    </script>
+</body>
+</html>
